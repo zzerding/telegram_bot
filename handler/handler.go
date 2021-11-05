@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -55,8 +56,9 @@ func UseHook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "request error"})
 		return
 	}
-	log.Println(callBack)
 	msg := callBack.Message
+	respose, err := json.Marshal(callBack)
+	log.Println(string(respose))
 	if msg == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "message not found"})
 		return
@@ -64,13 +66,17 @@ func UseHook(c *gin.Context) {
 	// chatID := msg.Chat.ID
 	userID := msg.From.ID
 	command := msg.Command()
+	log.Println("input command", command)
 	switch command {
-	case "/star":
+	case "start":
 		tgbot.Send(helpMsg(userID))
-	case "/help":
+		log.Println("command start")
+	case "help":
 		tgbot.Send(helpMsg(userID))
-	case "/token":
+		log.Println("command help")
+	case "mytoken":
 		tgbot.Send(tokenMsg(userID))
+		log.Println("command mytoken")
 	}
 	c.JSON(http.StatusOK, gin.H{"msg": "ok"})
 }
