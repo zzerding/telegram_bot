@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+var tokenError = errors.New("token error")
+
 func Ping(c *gin.Context) {
 	c.String(http.StatusOK, "pong")
 }
@@ -19,21 +22,33 @@ func ErrRouter(c *gin.Context) {
 	c.String(http.StatusBadRequest, "url err")
 }
 
+func badRequest(c *gin.Context, err error) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+}
 func SendMsg(c *gin.Context) {
 	m := new(message)
 	err := c.ShouldBind(m)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		badRequest(c, err)
+		return
 	}
-	id := idDecode(m.Token)
+	id, err := idDecode(m.Token)
+	if err != nil {
+		log.Println(err)
+		badRequest(c, tokenError)
+		return
+	}
 	idInt, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println(id, err)
+		badRequest(c, tokenError)
+		return
 	}
 	msg := tgbotapi.NewMessage(idInt, m.Text)
 	_, err = tgbot.Send(msg)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		badRequest(c, err)
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"msg": "success"})
 }
@@ -42,9 +57,13 @@ func helpMsg(id int) tgbotapi.MessageConfig {
 	text := `help`
 	return tgbotapi.NewMessage(int64(id), text)
 }
-func tokenMsg(id int) tgbotapi.MessageConfig {
-	token := idEncode(fmt.Sprint(id))
-	return tgbotapi.NewMessage(int64(id), token)
+func tokenMsg(id int) (msg tgbotapi.MessageConfig, err error) {
+	token, err := idEncode(fmt.Sprint(id))
+	if err != nil {
+		return
+	}
+	msg = tgbotapi.NewMessage(int64(id), token)
+	return
 }
 func errorMsg(id int) tgbotapi.MessageConfig {
 	return tgbotapi.NewMessage(int64(id), "server 500")
@@ -53,14 +72,14 @@ func UseHook(c *gin.Context) {
 	callBack := new(tgbotapi.CallbackQuery)
 	err := c.ShouldBindJSON(callBack)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "request error"})
+		badRequest(c, err)
 		return
 	}
 	msg := callBack.Message
 	respose, err := json.Marshal(callBack)
 	log.Println(string(respose))
 	if msg == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "message not found"})
+		badRequest(c, err)
 		return
 	}
 	// chatID := msg.Chat.ID
@@ -75,7 +94,12 @@ func UseHook(c *gin.Context) {
 		tgbot.Send(helpMsg(userID))
 		log.Println("command help")
 	case "mytoken":
-		tgbot.Send(tokenMsg(userID))
+		sendMsg, err := tokenMsg(userID)
+		if err != nil {
+			tgbot.Send(errorMsg(userID))
+			return
+		}
+		tgbot.Send(sendMsg)
 		log.Println("command mytoken")
 	}
 	c.JSON(http.StatusOK, gin.H{"msg": "ok"})

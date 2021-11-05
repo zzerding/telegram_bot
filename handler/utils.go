@@ -5,55 +5,62 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base32"
-	"fmt"
+	"errors"
 	"io"
-	"log"
 )
 
-var cryptoKey = []byte("ABCDEFGHIJKLMNOP")
+var cryptoKey = []byte(BotToken[0:32])
 
 // =================== CFB ======================
-func aesEncryptCFB(origData []byte, key []byte) (encrypted []byte) {
+func aesEncryptCFB(origData []byte, key []byte) (encrypted []byte, err error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		return
 	}
 	encrypted = make([]byte, aes.BlockSize+len(origData))
 	iv := encrypted[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		panic(err)
+	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		return
 	}
 	stream := cipher.NewCFBEncrypter(block, iv)
 	stream.XORKeyStream(encrypted[aes.BlockSize:], origData)
-	return encrypted
+	return
 }
-func aesDecryptCFB(encrypted []byte, key []byte) (decrypted []byte) {
+func aesDecryptCFB(encrypted []byte, key []byte) (decrypted []byte, err error) {
 	block, _ := aes.NewCipher(key)
 	if len(encrypted) < aes.BlockSize {
-		panic("ciphertext too short")
+		err = errors.New("ciphertext too short")
+		return
 	}
 	iv := encrypted[:aes.BlockSize]
-	encrypted = encrypted[aes.BlockSize:]
+	decrypted = encrypted[aes.BlockSize:]
 
 	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(encrypted, encrypted)
-	return encrypted
+	stream.XORKeyStream(decrypted, decrypted)
+	return
 }
 
-func idEncode(id string) string {
+func idEncode(id string) (idEncode string, err error) {
 	idByte := []byte(id)
-	encrypted := aesEncryptCFB(idByte, cryptoKey)
-	return base32.StdEncoding.EncodeToString(encrypted)
+	var encrypted []byte
+	encrypted, err = aesEncryptCFB(idByte, cryptoKey)
+	if err != nil {
+		return
+	}
+	idEncode = base32.StdEncoding.EncodeToString(encrypted)
+	return
 }
 
-func idDecode(code string) string {
-	codeByte, err := base32.StdEncoding.DecodeString(code)
-	log.Println(codeByte)
+func idDecode(code string) (id string, err error) {
+	var codeByte, encrypted []byte
+	codeByte, err = base32.StdEncoding.DecodeString(code)
 	if err != nil {
-		//TODO return err
-		fmt.Println(err)
-		return ""
+		return
 	}
-	encrypted := aesDecryptCFB(codeByte, cryptoKey)
-	return string(encrypted)
+	encrypted, err = aesDecryptCFB(codeByte, cryptoKey)
+	if err != nil {
+		return
+	}
+	id = string(encrypted)
+	return
 }

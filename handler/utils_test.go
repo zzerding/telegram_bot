@@ -14,11 +14,17 @@ var id = "1264567"
 var idCode = "XGMEP7NFFDTB25S2ZPU5F5MYYCAKR2UPL5LYW==="
 
 func TestIdEncode(t *testing.T) {
-	idCode := idEncode(id)
+	idCode, err := idEncode(id)
+	if err != nil {
+		t.Log(err)
+	}
 	t.Log("encode", idCode)
 }
 func TestIdDeoce(t *testing.T) {
-	decodeId := idDecode(idCode)
+	decodeId, err := idDecode(idCode)
+	if err != nil {
+		t.Log(err)
+	}
 	if id != decodeId {
 		t.Errorf("idDecode  %s not equal %s", decodeId, id)
 	}
