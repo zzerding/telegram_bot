@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"telegramBot/handler"
@@ -14,7 +12,10 @@ var (
 )
 
 func registerRouter(r *gin.RouterGroup) {
+	r.GET("/setHook", handler.SetHook)
 	r.GET("/ping", handler.Ping)
+	r.POST("/sendmsg", handler.SendMsg)
+	r.POST(handler.BotToken, handler.UseHook)
 }
 
 // init gin app
@@ -23,12 +24,7 @@ func init() {
 
 	// Handling routing errors
 	app.NoRoute(func(c *gin.Context) {
-		sb := &strings.Builder{}
-		sb.WriteString("routing err: no route, try this:\n")
-		for _, v := range app.Routes() {
-			sb.WriteString(fmt.Sprintf("%s %s\n", v.Method, v.Path))
-		}
-		c.String(http.StatusBadRequest, sb.String())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no route"})
 	})
 	// must /api/xxx
 	r := app.Group("/api")
