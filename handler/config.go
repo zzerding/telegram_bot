@@ -18,6 +18,6 @@ func init() {
 }
 
 type message struct {
-	Token string `json:"token"`
-	Text  string `json:"text"`
+	Token string `json:"token" form:"token"`
+	Text  string `json:"text" form:"text"`
 }

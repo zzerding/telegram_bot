@@ -32,6 +32,8 @@ func SendMsg(c *gin.Context) {
 		badRequest(c, err)
 		return
 	}
+	req, _ := json.Marshal(m)
+	log.Printf("%s", req)
 	id, err := idDecode(m.Token)
 	if err != nil {
 		log.Println(err)
@@ -54,7 +56,13 @@ func SendMsg(c *gin.Context) {
 }
 
 func helpMsg(id int) tgbotapi.MessageConfig {
-	text := `help`
+	text := `
+这个 bot 使用的是vercel服务，主要用来推送消息的，因为国内有的服务器访问不了 telegram
+使用方法：
+	1. 取得自己的 token /mytoken
+	2. curl -d "token=yourtoken&text=your msg" https://zzerd.vercel.app/sendmsg  
+	可以使用你喜欢的任意语言 post 这个网址支持 json 与 form 格式
+	`
 	return tgbotapi.NewMessage(int64(id), text)
 }
 func tokenMsg(id int) (msg tgbotapi.MessageConfig, err error) {
