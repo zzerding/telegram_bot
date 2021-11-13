@@ -8,12 +8,25 @@ import (
 	"net/http"
 	"strconv"
 
+	"telegramBot/handler/internal/bingwallpaper"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var tokenError = errors.New("token error")
 
+func BingWall(c *gin.Context) {
+	data, err := bingwallpaper.GetCache(bingwallpaper.UrlBingServer)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, data)
+
+}
+func Ip(c *gin.Context) {
+	c.String(http.StatusOK, c.ClientIP())
+}
 func Ping(c *gin.Context) {
 	c.String(http.StatusOK, "pong")
 }

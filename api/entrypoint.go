@@ -4,18 +4,28 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"telegramBot/handler"
+	"telegramBot/middle"
 )
 
 var (
 	app *gin.Engine
 )
 
+func registerCorsRoute(r *gin.RouterGroup) {
+	r.Use(middle.CORSMiddleware())
+	r.GET("/ip", handler.Ip)
+	r.GET("/bingwall", handler.BingWall)
+}
 func registerRouter(r *gin.RouterGroup) {
 	r.GET("/setHook", handler.SetHook)
 	r.GET("/ping", handler.Ping)
 	r.POST("/sendmsg", handler.SendMsg)
 	r.POST(handler.BotToken, handler.UseHook)
+
+	corsR := r.Group("/")
+	registerCorsRoute(corsR)
 }
 
 // init gin app
