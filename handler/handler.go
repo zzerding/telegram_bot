@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"telegramBot/handler/internal/bingwallpaper"
 
@@ -16,6 +18,14 @@ import (
 
 var tokenError = errors.New("token error")
 
+func getClientIP(c *gin.Context) string {
+	forwardHeader := c.Request.Header.Get("x-forwarded-for")
+	firstAddress := strings.Split(forwardHeader, ",")[0]
+	if net.ParseIP(strings.TrimSpace(firstAddress)) != nil {
+		return firstAddress
+	}
+	return c.ClientIP()
+}
 func BingWall(c *gin.Context) {
 	data, err := bingwallpaper.GetCache(bingwallpaper.UrlBingServer)
 	if err != nil {
@@ -25,7 +35,7 @@ func BingWall(c *gin.Context) {
 
 }
 func Ip(c *gin.Context) {
-	c.String(http.StatusOK, c.ClientIP())
+	c.String(http.StatusOK, getClientIP(c))
 }
 func Ping(c *gin.Context) {
 	c.String(http.StatusOK, "pong")
